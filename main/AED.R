@@ -2,6 +2,73 @@ library(fpp3)
 library(readxl)
 library(here)
 
+# PASO 1: Leer
+pm25 <- read_excel(
+  here("data", "PM2.5.xlsx"),
+  sheet = "LIMPIO"
+)
+
+glimpse(pm25)
+
+# PASO 2: Ancho -> largo (solo Belisario)
+pm25_largo <- pm25 %>%
+  select(FECHA, BELISARIO) %>%                 # <- evita columnas extra (K, L)
+  pivot_longer(cols = -FECHA, names_to = "estacion", values_to = "pm25") %>%
+  filter(estacion == "BELISARIO")              # <- filtro de estación
+
+# PASO 3: Redondear a la hora y fijar zona horaria
+pm25_largo_corregido <- pm25_largo %>%
+  mutate(FECHA = force_tz(round_date(FECHA, "hour"), "America/Guayaquil"))
+
+# PASO 4: Duplicados
+duplicados <- pm25_largo_corregido %>%
+  count(estacion, FECHA) %>%
+  filter(n > 1)
+stopifnot(nrow(duplicados) == 0)
+
+# PASO 5: tsibble
+pm25_ts <- pm25_largo_corregido %>%
+  filter(!is.na(pm25)) %>%
+  as_tsibble(key = estacion, index = FECHA) %>%
+  fill_gaps()
+
+has_gaps(pm25_ts)
+pm25_ts %>% count_gaps() %>% arrange(desc(.n))
+
+pm25_mes <- pm25_ts %>%
+  group_by_key() %>%
+  index_by(mes = yearmonth(FECHA)) %>%
+  summarise(n = sum(!is.na(pm25)), pm25 = mean(pm25, na.rm = TRUE)) %>%
+  mutate(cobertura = n / (days_in_month(as.Date(mes)) * 24),
+         pm25 = if_else(cobertura >= 0.75, pm25, NA_real_)) %>%
+  fill_gaps()
+
+# GRÁFICOS
+pm25_mes %>% gg_subseries(pm25)
+
+pm25_ts %>% as_tibble() %>%
+  mutate(hora = hour(FECHA)) %>%
+  group_by(estacion, hora) %>%
+  summarise(pm25 = mean(pm25, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(hora, pm25, colour = estacion)) + geom_line()
+
+pm25_mes %>%
+  gg_season(pm25, period = "year") +
+  labs(y = "PM2.5 (µg/m³)", x = NULL,
+       title = "Estacionalidad anual del PM2.5 - Estación Belisario")
+
+
+
+
+
+
+
+
+#####################################################################################################################################################################
+library(fpp3)
+library(readxl)
+library(here)
+
 
 # PASO 1: Leer
 library(readxl)
