@@ -65,7 +65,7 @@ descomposicion <- pm25_completa |>
     )
   )
 
-# Gráfico de la tendencia
+# Gráfico de la tendencia 
 pm25_mes |>
   autoplot(pm25, colour = "grey65", na.rm = TRUE) +
   geom_line(
@@ -122,9 +122,9 @@ descomposicion |> autoplot(estacional, colour = "#176B87", na.rm = TRUE) +
     subtitle = "Patrón anual con 12 efectos mensuales que suman cero"
   )
 
-# Paso 4. Restar la estacionalidad a la serie sin tendencia.
-descomposicion <- descomposicion |>
-  mutate(restante = sin_tendencia - estacional)
+# Paso 4. Restar la estacionalidad a la serie sin tendencia.                                      #si me corrieron todos los graficos no tuve mayor problema solo
+descomposicion <- descomposicion |>                                                                #tuve que instalar el paquete zoo y todo funciono bien
+  mutate(restante = sin_tendencia - estacional)                                                   #me quedo como este codigo como base para mi proyecto jeje gracias mau 
 
 descomposicion |> autoplot(restante, colour = "#176B87", na.rm = TRUE) +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey55") +
